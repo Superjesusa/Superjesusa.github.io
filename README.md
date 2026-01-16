@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Tracker Pro</title>
+    <title>Global Portfolio USD</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -12,19 +12,19 @@
     <div class="max-w-md mx-auto pb-24">
         <header class="mb-6 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-black tracking-tight">Portfolio</h1>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest" id="dateDisplay"></p>
+                <h1 class="text-3xl font-black tracking-tight">Portfolio <span class="text-blue-600">USD</span></h1>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest" id="dateDisplay"></p>
             </div>
             <div class="text-right">
-                <span class="text-lg font-black text-slate-900" id="time">00:00</span>
+                <span class="text-lg font-black text-slate-900" id="timeDisplay">00:00</span>
             </div>
         </header>
 
         <div class="bg-white p-6 rounded-[2.5rem] shadow-xl mb-8 border border-slate-100">
             <div class="flex justify-between items-start mb-2">
                 <div>
-                    <p class="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-1">Total Gain/Loss</p>
-                    <h2 id="totalGain" class="text-4xl font-black text-slate-300">€0.00</h2>
+                    <p class="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-1">Total Balance (USD)</p>
+                    <h2 id="totalBalance" class="text-4xl font-black">$0.00</h2>
                 </div>
                 <div id="gainBadge" class="bg-slate-100 text-slate-400 px-3 py-1 rounded-full text-xs font-black">0.0%</div>
             </div>
@@ -33,73 +33,66 @@
                 <canvas id="performanceChart"></canvas>
             </div>
 
-            <div class="flex justify-between mt-6 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                <button onclick="updateTimeframe('1M')" class="tf-btn flex-1 py-2 text-[10px] font-black rounded-xl bg-white shadow-sm text-blue-600">1M</button>
-                <button onclick="updateTimeframe('3M')" class="tf-btn flex-1 py-2 text-[10px] font-black rounded-xl text-slate-400">3M</button>
-                <button onclick="updateTimeframe('1Y')" class="tf-btn flex-1 py-2 text-[10px] font-black rounded-xl text-slate-400">1Y</button>
-                <button onclick="updateTimeframe('YTD')" class="tf-btn flex-1 py-2 text-[10px] font-black rounded-xl text-slate-400">YTD</button>
+            <div class="flex gap-2 mt-6">
+                <select id="benchmarkSelect" onchange="toggleBenchmark()" class="bg-slate-100 border-none rounded-xl text-[10px] font-black px-3 py-2 text-slate-600 focus:ring-0">
+                    <option value="none">COMPARE: NONE</option>
+                    <option value="SPY">COMPARE: SPY</option>
+                    <option value="QQQ">COMPARE: QQQ</option>
+                </select>
+                <div class="flex flex-1 bg-slate-100 p-1 rounded-xl border border-slate-100">
+                    <button class="flex-1 py-1 text-[10px] font-black rounded-lg bg-white shadow-sm text-blue-600">1M</button>
+                    <button class="flex-1 py-1 text-[10px] font-black rounded-lg text-slate-400">1Y</button>
+                </div>
             </div>
         </div>
 
-        <div id="stockList" class="space-y-4 mb-10">
-            </div>
+        <div id="stockList" class="space-y-4 mb-10"></div>
 
-        <div class="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl shadow-blue-200">
+        <div class="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl">
             <h3 class="font-black text-xl mb-6">Add Asset</h3>
             <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Ticker Symbol</label>
-                    <input type="text" id="manualTicker" placeholder="e.g. ASML" class="w-full mt-1 p-4 bg-slate-800 rounded-2xl text-sm font-bold uppercase border-none focus:ring-2 focus:ring-blue-500 text-white placeholder:opacity-20">
-                </div>
+                <input type="text" id="manualTicker" placeholder="TICKER (e.g. ASML, EQNR.OL)" class="w-full p-4 bg-slate-800 rounded-2xl text-sm font-bold uppercase border-none text-white">
                 <div class="flex gap-4">
-                    <div class="flex-1">
-                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Quantity</label>
-                        <input type="number" id="manualQty" placeholder="0" class="w-full mt-1 p-4 bg-slate-800 rounded-2xl text-sm font-bold border-none text-white placeholder:opacity-20">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Avg Cost (€)</label>
-                        <input type="number" id="manualCost" placeholder="0.00" class="w-full mt-1 p-4 bg-slate-800 rounded-2xl text-sm font-bold border-none text-white placeholder:opacity-20">
-                    </div>
+                    <input type="number" id="manualQty" placeholder="QTY" class="w-1/2 p-4 bg-slate-800 rounded-2xl text-sm font-bold border-none text-white">
+                    <input type="number" id="manualCost" placeholder="AVG COST" class="w-1/2 p-4 bg-slate-800 rounded-2xl text-sm font-bold border-none text-white">
                 </div>
-                <button onclick="addStock()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-lg shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all">
-                    Save to Portfolio
-                </button>
-                <button onclick="clearAll()" class="w-full mt-2 text-slate-600 text-[9px] font-black uppercase tracking-[0.2em]">Clear All Data</button>
+                <select id="currencySelect" class="w-full p-4 bg-slate-800 rounded-2xl text-sm font-bold border-none text-white uppercase">
+                    <option value="USD">Purchased in USD</option>
+                    <option value="EUR">Purchased in EUR</option>
+                    <option value="NOK">Purchased in NOK</option>
+                </select>
+                <button onclick="addStock()" class="w-full bg-blue-600 py-5 rounded-2xl font-black text-lg active:scale-95 transition-all">Save to Portfolio</button>
             </div>
         </div>
     </div>
 
     <script>
         let myChart;
+        let rates = { NOK: 0.095, EUR: 1.09, USD: 1.0 }; // Fallback rates
 
-        // Configuration
-        function updateDisplay() {
+        async function updateDisplay() {
             const now = new Date();
-            // Military Time
-            document.getElementById('time').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-            // Date
-            const options = { weekday: 'long', month: 'short', day: 'numeric' };
-            document.getElementById('dateDisplay').innerText = now.toLocaleDateString('en-US', options);
+            document.getElementById('timeDisplay').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('dateDisplay').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
         }
 
-        window.onload = function() {
-            updateDisplay();
-            initChart();
-            renderPortfolio();
-            setInterval(updateDisplay, 30000);
-        };
+        async function fetchRates() {
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await res.json();
+                rates.NOK = 1 / data.rates.NOK;
+                rates.EUR = 1 / data.rates.EUR;
+            } catch(e) { console.error("Rate fetch failed, using fallback"); }
+        }
 
-        // Fetch Live Prices (No Key Needed for Popular Tickers)
         async function fetchPrice(ticker) {
             try {
-                // Public proxy for quotes
                 const res = await fetch(`https://api.marketdata.app/v1/stocks/quotes/${ticker}/`);
                 const data = await res.json();
-                if (data.last && data.last[0]) return data.last[0];
+                if (data.last) return data.last[0];
                 throw new Error();
             } catch (e) {
-                // Manual fallbacks for common Euro/Tech stocks
-                const fallbacks = { 'ASML': 1160.20, 'ASML.AS': 1160.20, 'TSLA': 218.45, 'AAPL': 185.90 };
+                const fallbacks = { 'ASML': 1220.00, 'EQNR.OL': 28.50, 'SPY': 590.20, 'QQQ': 510.40 };
                 return fallbacks[ticker.toUpperCase()] || 150.00;
             }
         }
@@ -108,75 +101,58 @@
             const ticker = document.getElementById('manualTicker').value.toUpperCase().trim();
             const qty = parseFloat(document.getElementById('manualQty').value);
             const cost = parseFloat(document.getElementById('manualCost').value);
+            const currency = document.getElementById('currencySelect').value;
 
-            if (!ticker || isNaN(qty) || isNaN(cost)) {
-                alert("Please fill in all fields correctly.");
-                return;
-            }
+            if (!ticker || isNaN(qty) || isNaN(cost)) return alert("Fill all fields");
 
-            let portfolio = JSON.parse(localStorage.getItem('proPortfolio') || '{}');
-            portfolio[ticker] = { qty, cost };
-            localStorage.setItem('proPortfolio', JSON.stringify(portfolio));
-            
-            // Reset inputs
-            document.getElementById('manualTicker').value = '';
-            document.getElementById('manualQty').value = '';
-            document.getElementById('manualCost').value = '';
-            
-            renderPortfolio();
+            let portfolio = JSON.parse(localStorage.getItem('usdPortfolio') || '{}');
+            portfolio[ticker] = { qty, cost, currency };
+            localStorage.setItem('usdPortfolio', JSON.stringify(portfolio));
+            location.reload();
         }
 
         async function renderPortfolio() {
-            const portfolio = JSON.parse(localStorage.getItem('proPortfolio') || '{}');
+            await fetchRates();
+            const portfolio = JSON.parse(localStorage.getItem('usdPortfolio') || '{}');
             const listContainer = document.getElementById('stockList');
             listContainer.innerHTML = '';
             
-            let totalGain = 0;
-            let totalBasis = 0;
+            let totalValueUSD = 0;
+            let totalCostUSD = 0;
 
-            const tickers = Object.keys(portfolio);
-            if (tickers.length === 0) {
-                listContainer.innerHTML = '<p class="text-center text-slate-400 py-10 font-bold">No assets yet.</p>';
-                return;
-            }
-
-            for (const ticker of tickers) {
-                const data = portfolio[ticker];
-                const livePrice = await fetchPrice(ticker);
+            for (const ticker in portfolio) {
+                const item = portfolio[ticker];
+                const livePriceLocal = await fetchPrice(ticker);
                 
-                const gain = (livePrice - data.cost) * data.qty;
-                const gainPct = ((livePrice - data.cost) / data.cost) * 100;
+                // Convert local price to USD if it's a known Euro/NOK stock
+                let currentUSD = (ticker.includes('.OL') || item.currency === 'NOK') ? livePriceLocal * rates.NOK :
+                                 (item.currency === 'EUR') ? livePriceLocal * rates.EUR : livePriceLocal;
                 
-                totalGain += gain;
-                totalBasis += (data.cost * data.qty);
+                let costUSD = item.cost * (rates[item.currency] || 1);
+                
+                let valueUSD = currentUSD * item.qty;
+                let gainUSD = (currentUSD - costUSD) * item.qty;
+                
+                totalValueUSD += valueUSD;
+                totalCostUSD += (costUSD * item.qty);
 
                 listContainer.innerHTML += `
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center transition-all">
+                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div>
-                            <p class="font-black text-slate-900 text-lg leading-tight">${ticker}</p>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Avg: €${data.cost.toLocaleString()}</p>
+                            <p class="font-black text-slate-900">${ticker}</p>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">Cost: $${costUSD.toFixed(2)}</p>
                         </div>
                         <div class="text-right">
-                            <p class="font-black ${gain >= 0 ? 'text-green-500' : 'text-red-500'} text-lg">
-                                ${gain >= 0 ? '+' : ''}€${gain.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                            </p>
-                            <p class="text-[10px] font-black ${gain >= 0 ? 'text-green-400' : 'text-red-400'}">
-                                ${gainPct >= 0 ? '↑' : '↓'} ${Math.abs(gainPct).toFixed(2)}%
-                            </p>
+                            <p class="font-bold ${gainUSD >= 0 ? 'text-green-500' : 'text-red-500'}">$${valueUSD.toLocaleString(undefined, {maximumFractionDigits:0})}</p>
+                            <p class="text-[9px] font-black ${gainUSD >= 0 ? 'text-green-400' : 'text-red-400'}">${gainUSD >= 0 ? '+' : ''}$${gainUSD.toFixed(0)}</p>
                         </div>
                     </div>`;
             }
 
-            // Summary Math
-            const totalPct = totalBasis > 0 ? (totalGain / totalBasis) * 100 : 0;
-            const gainEl = document.getElementById('totalGain');
-            const badgeEl = document.getElementById('gainBadge');
-
-            gainEl.innerText = (totalGain >= 0 ? '+€' : '-€') + Math.abs(totalGain).toLocaleString(undefined, {minimumFractionDigits: 2});
-            gainEl.className = `text-4xl font-black transition-all ${totalGain >= 0 ? 'text-green-500' : 'text-red-500'}`;
-            
-            badgeEl.innerText = (totalGain >= 0 ? '+' : '') + totalPct.toFixed(1) + "%";
-            badgeEl.className = `px-3 py-1 rounded-full text-xs font-black ${totalGain >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            document.getElementById('totalBalance').innerText = "$" + totalValueUSD.toLocaleString(undefined, {minimumFractionDigits: 2});
+            const pct = totalCostUSD > 0 ? ((totalValueUSD - totalCostUSD) / totalCostUSD) * 100 : 0;
+            document.getElementById('gainBadge').innerText = (pct >= 0 ? '+' : '') + pct.toFixed(1) + "%";
+            document.getElementById('gainBadge').className = `px-3 py-1 rounded-full text-xs font-black ${pct >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
         }
 
         function initChart() {
@@ -184,52 +160,41 @@
             myChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Today'],
+                    labels: ['W1', 'W2', 'W3', 'W4', 'Now'],
                     datasets: [{
-                        data: [100, 115, 108, 125, 130], // Sample data
+                        label: 'Portfolio',
+                        data: [100, 105, 102, 110, 108],
                         borderColor: '#2563eb',
-                        borderWidth: 4,
-                        pointRadius: 0,
-                        tension: 0.45,
-                        fill: true,
-                        backgroundColor: (context) => {
-                            const gradient = ctx.createLinearGradient(0, 0, 0, 150);
-                            gradient.addColorStop(0, 'rgba(37, 99, 235, 0.15)');
-                            gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
-                            return gradient;
-                        }
+                        borderWidth: 3, pointRadius: 0, tension: 0.4, fill: true,
+                        backgroundColor: 'rgba(37, 99, 235, 0.05)'
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { x: { display: false }, y: { display: false } }
                 }
             });
         }
 
-        function updateTimeframe(label) {
-            // Update UI
-            document.querySelectorAll('.tf-btn').forEach(b => {
-                b.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
-                b.classList.add('text-slate-400');
-            });
-            event.target.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
-            event.target.classList.remove('text-slate-400');
+        function toggleBenchmark() {
+            const bench = document.getElementById('benchmarkSelect').value;
+            if (myChart.data.datasets.length > 1) myChart.data.datasets.pop();
             
-            // In a real API version, we would fetch historical data here.
-            // For now, we simulate a visual change.
-            myChart.data.datasets[0].data = Array.from({length: 5}, () => Math.floor(Math.random() * 50) + 100);
+            if (bench !== 'none') {
+                const mockBenchData = (bench === 'SPY') ? [100, 102, 103, 105, 106] : [100, 104, 101, 108, 112];
+                myChart.data.datasets.push({
+                    label: bench,
+                    data: mockBenchData,
+                    borderColor: '#cbd5e1',
+                    borderDash: [5, 5],
+                    borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false
+                });
+            }
             myChart.update();
         }
 
-        function clearAll() {
-            if (confirm("Permanently delete all stock data?")) {
-                localStorage.removeItem('proPortfolio');
-                location.reload();
-            }
-        }
+        window.onload = () => { updateDisplay(); initChart(); renderPortfolio(); };
     </script>
 </body>
 </html>
