@@ -15,19 +15,19 @@
         </header>
 
         <div class="bg-slate-900 text-white p-8 rounded-3xl mb-8 shadow-2xl">
-            <p class="text-xs uppercase tracking-widest opacity-60 font-bold mb-1">Total Value</p>
+            <p class="text-xs uppercase tracking-widest opacity-60 font-bold mb-1">Total Portfolio Value</p>
             <h2 id="totalValue" class="text-5xl font-bold">$0.00</h2>
         </div>
 
         <div id="stockList" class="space-y-4 mb-40">
             <div class="bg-white p-8 rounded-2xl text-center border-2 border-dashed border-slate-200">
-                <p class="text-slate-400">Waiting for CSV...</p>
+                <p class="text-slate-400">Upload your CSV to begin...</p>
             </div>
         </div>
 
         <div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md bg-white p-4 rounded-3xl border border-slate-200 shadow-2xl">
-            <input type="file" id="csvFile" accept=".csv" class="mb-3 block w-full text-xs text-slate-500"/>
-            <button onclick="processTransactions()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg">
+            <input type="file" id="csvFile" accept=".csv" class="mb-3 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700"/>
+            <button onclick="processTransactions()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg active:scale-95 transition-all">
                 Calculate Portfolio
             </button>
         </div>
@@ -41,41 +41,71 @@
         }
 
         function processTransactions() {
-            try {
-                const fileInput = document.getElementById('csvFile');
-                const file = fileInput.files[0];
-                
-                if (!file) {
-                    alert("STEP 1: No file selected. Please click 'Choose File' first.");
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            if (!file) { alert("Please select your CSV file first."); return; }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const rows = e.target.result.split(/\r?\n/).filter(row => row.trim() !== "");
+                const headers = rows[0].split(',').map(h => h.replace(/["]/g, '').trim());
+
+                // Find column indexes based on your image
+                const symbolIdx = headers.indexOf("Symbol");
+                const qtyIdx = headers.indexOf("Quantity");
+
+                if (symbolIdx === -1 || qtyIdx === -1) {
+                    alert("Could not find 'Symbol' or 'Quantity' columns. Found: " + headers.join(", "));
                     return;
                 }
 
-                const reader = new FileReader();
-                
-                reader.onerror = function() {
-                    alert("ERROR: Could not read the file from your computer.");
-                };
+                const portfolio = {};
+                for (let i = 1; i < rows.length; i++) {
+                    const cols = rows[i].split(',');
+                    if (cols.length <= Math.max(symbolIdx, qtyIdx)) continue;
 
-                reader.onload = function(e) {
-                    const text = e.target.result;
-                    if (!text) { alert("ERROR: The file appears to be empty."); return; }
-                    
-                    const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
-                    const firstRow = rows[0].split(',');
-                    
-                    alert("STEP 2: File loaded. Columns found: " + firstRow.join(" | "));
+                    const ticker = cols[symbolIdx].replace(/["]/g, '').trim();
+                    const qty = parseFloat(cols[qtyIdx].replace(/["]/g, '').trim()) || 0;
 
-                    const headers = firstRow.map(h => h.replace(/["]/g, '').trim().toLowerCase());
-                    const symbolIdx = headers.findIndex(h => h.includes('symbol') || h.includes('ticker'));
-                    const qtyIdx = headers.findIndex(h => h.includes('shares') || h.includes('quantity') || h.includes('amount'));
-                    
-                    if (symbolIdx === -1 || qtyIdx === -1) {
-                        alert("STEP 3 ERROR: Could not find 'Symbol' or 'Shares' columns. Check your CSV header names.");
-                        return;
+                    if (ticker) {
+                        portfolio[ticker] = (portfolio[ticker] || 0) + qty;
                     }
+                }
 
-                    const portfolio = {};
-                    for (let i = 1; i < rows.length; i++) {
-                        const cols = rows[i].split(',');
-                        const ticker = cols[symbolIdx]?.replace(/["]/g, '').trim();
-                        const qty = parseFloat(cols[qtyIdx]?.replace(/["]/g, '').trim()) || 0;
+                renderPortfolio(portfolio);
+            };
+            reader.readAsText(file);
+        }
+
+        function renderPortfolio(portfolio) {
+            const listContainer = document.getElementById('stockList');
+            listContainer.innerHTML = '';
+            let totalValue = 0;
+
+            for (const ticker in portfolio) {
+                const qty = portfolio[ticker];
+                if (qty <= 0) continue;
+
+                const mockPrice = 150; 
+                const value = qty * mockPrice;
+                totalValue += value;
+
+                listContainer.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+                        <div>
+                            <p class="font-black text-slate-800 text-lg">${ticker}</p>
+                            <p class="text-xs font-bold text-slate-400 uppercase">${qty.toLocaleString()} Shares</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black text-slate-900">$${value.toLocaleString()}</p>
+                            <p class="text-[10px] text-blue-500 font-bold uppercase">Estimated</p>
+                        </div>
+                    </div>`;
+            }
+
+            document.getElementById('totalValue').innerText = "$" + totalValue.toLocaleString();
+            updateTime();
+        }
+    </script>
+</body>
+</html>
