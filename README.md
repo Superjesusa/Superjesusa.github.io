@@ -5,113 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Stock Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    </style>
 </head>
 <body class="bg-gray-100 p-4 font-sans text-gray-900">
 
-    <header class="mb-6 flex justify-between items-end">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Portfolio</h1>
-            <p class="text-gray-500 text-sm">Last Sync: <span id="time">00:00</span></p>
-        </div>
+    <header class="mb-6">
+        <h1 class="text-2xl font-bold">Portfolio</h1>
+        <p class="text-gray-500 text-sm">Last Sync: <span id="time">00:00</span></p>
     </header>
 
-    <div id="summary" class="card p-6 mb-6 bg-slate-900 text-white shadow-xl">
+    <div id="summary" class="bg-slate-900 text-white p-6 rounded-xl mb-6 shadow-xl">
         <p class="text-sm opacity-70">Total Portfolio Value</p>
-        <h2 id="totalValue" class="text-4xl font-bold tracking-tight">$0.00</h2>
+        <h2 id="totalValue" class="text-4xl font-bold">$0.00</h2>
     </div>
 
-    <div id="stockList" class="space-y-3">
-        <div class="text-center py-10 border-2 border-dashed border-gray-300 rounded-xl">
-            <p class="text-gray-400 italic">Upload Transactions CSV below.</p>
+    <div id="stockList" class="space-y-3 mb-10">
+        <div id="debug" class="text-center py-10 border-2 border-dashed border-gray-300 rounded-xl text-gray-400">
+            No data loaded yet.
         </div>
     </div>
 
-    <div class="mt-10 border-t border-gray-300 pt-6 pb-10">
-        <h3 class="text-lg font-bold mb-1">Import Transactions</h3>
-        <p class="text-xs text-gray-500 mb-4">Exported from Stock Events</p>
-        
-        <div class="space-y-3">
-            <input type="file" id="csvFile" accept=".csv" 
-                class="block w-full text-sm text-gray-500
-                file:mr-4 file:py-3 file:px-4
-                file:rounded-lg file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-600 file:text-white"/>
-
-            <button onclick="processTransactions()" 
-                class="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
-                Calculate Portfolio
-            </button>
-        </div>
+    <div class="fixed bottom-0 left-0 right-0 bg-white p-6 border-t border-gray-200 shadow-2xl">
+        <input type="file" id="csvFile" accept=".csv" class="mb-3 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700"/>
+        <button onclick="processTransactions()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold active:scale-95 transition-transform">Calculate Portfolio</button>
     </div>
 
     <script>
         function updateTime() {
             const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
-                            now.getMinutes().toString().padStart(2, '0');
+            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
             document.getElementById('time').innerText = timeStr;
         }
-        updateTime();
 
         function processTransactions() {
             const fileInput = document.getElementById('csvFile');
             const file = fileInput.files[0];
-            if (!file) return;
+            if (!file) { alert("Select a file first!"); return; }
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 const text = e.target.result;
-                const rows = text.split('\n');
-                const portfolio = {}; // Use an object to group stocks
+                const rows = text.split('\n').map(row => row.split(','));
+                const headers = rows[0].map(h => h.replace(/"/g, '').trim().toLowerCase());
+                
+                // Find column indexes automatically
+                const symbolIdx = headers.findIndex(h => h.includes('symbol') || h.includes('ticker'));
+                const qtyIdx = headers.findIndex(h => h.includes('shares') || h.includes('quantity') || h.includes('amount'));
+                const typeIdx = headers.findIndex(h => h.includes('type') || h.includes('transaction'));
 
-                // 1. Group transactions by Ticker
+                if (symbolIdx === -1 || qtyIdx === -1) {
+                    alert("Error: Could not find 'Symbol' or 'Quantity' columns in your CSV.");
+                    return;
+                }
+
+                const portfolio = {};
                 for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].split(',');
-                    if (cols.length < 5) continue;
+                    const cols = rows[i];
+                    if (cols.length < 2) continue;
 
-                    // Standard Stock Events Transaction CSV:
-                    // Symbol: Col 0 | Type: Col 1 | Quantity: Col 2
-                    const ticker = cols[0].replace(/"/g, '').trim();
-                    const type = cols[1].replace(/"/g, '').trim().toLowerCase();
-                    const qty = parseFloat(cols[2]) || 0;
+                    const ticker = cols[symbolIdx].replace(/"/g, '').trim();
+                    const qty = parseFloat(cols[qtyIdx]) || 0;
+                    const type = typeIdx !== -1 ? cols[typeIdx].toLowerCase() : 'buy';
 
+                    if (!ticker) continue;
                     if (!portfolio[ticker]) portfolio[ticker] = 0;
 
-                    // If it's a "Buy", add. If it's a "Sell", subtract.
-                    if (type.includes('buy')) {
-                        portfolio[ticker] += qty;
-                    } else if (type.includes('sell')) {
+                    if (type.includes('sell')) {
                         portfolio[ticker] -= qty;
+                    } else {
+                        portfolio[ticker] += qty;
                     }
                 }
 
-                // 2. Render grouped results
                 const listContainer = document.getElementById('stockList');
                 listContainer.innerHTML = '';
                 let totalValue = 0;
 
                 for (const ticker in portfolio) {
                     const finalQty = portfolio[ticker];
-                    if (finalQty <= 0) continue; // Skip stocks you no longer own
+                    if (finalQty <= 0) continue;
 
-                    const mockPrice = 150.00;
-                    const stockValue = finalQty * mockPrice;
-                    totalValue += stockValue;
+                    const mockPrice = 150;
+                    const val = finalQty * mockPrice;
+                    totalValue += val;
 
                     listContainer.innerHTML += `
-                        <div class="card p-4 flex justify-between items-center">
-                            <div>
-                                <h3 class="font-black text-gray-800">${ticker}</h3>
-                                <p class="text-xs text-gray-500">${finalQty.toLocaleString()} Shares</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-gray-900">$${stockValue.toLocaleString()}</p>
-                            </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border border-gray-100">
+                            <div><p class="font-black">${ticker}</p><p class="text-xs text-gray-500">${finalQty.toLocaleString()} Shares</p></div>
+                            <p class="font-bold">$${val.toLocaleString()}</p>
                         </div>`;
                 }
 
