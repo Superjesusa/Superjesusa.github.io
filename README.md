@@ -20,8 +20,8 @@
         </div>
 
         <div id="stockList" class="space-y-4 mb-40">
-            <div class="bg-white p-8 rounded-2xl text-center border-2 border-dashed border-slate-200">
-                <p class="text-slate-400">Upload your CSV to begin...</p>
+            <div id="statusMessage" class="bg-white p-8 rounded-2xl text-center border-2 border-dashed border-slate-200">
+                <p class="text-slate-400">Upload your Stock Events CSV to begin...</p>
             </div>
         </div>
 
@@ -43,23 +43,44 @@
         function processTransactions() {
             const fileInput = document.getElementById('csvFile');
             const file = fileInput.files[0];
-            if (!file) { alert("Please select your CSV file first."); return; }
+
+            // 1. Check if file is selected
+            if (!file) {
+                alert("Standard Warning: No file selected. Please choose a CSV file.");
+                return;
+            }
+
+            // 2. Check for correct file type
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                alert("Invalid File Type: Please upload a file ending in .csv");
+                return;
+            }
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const rows = e.target.result.split(/\r?\n/).filter(row => row.trim() !== "");
+                const content = e.target.result;
+                const rows = content.split(/\r?\n/).filter(row => row.trim() !== "");
+                
+                if (rows.length < 2) {
+                    alert("Invalid Data: The file appears to be empty or missing data rows.");
+                    return;
+                }
+
                 const headers = rows[0].split(',').map(h => h.replace(/["]/g, '').trim());
 
-                // Find column indexes based on your image
+                // 3. Check for specific columns based on your image
                 const symbolIdx = headers.indexOf("Symbol");
                 const qtyIdx = headers.indexOf("Quantity");
 
                 if (symbolIdx === -1 || qtyIdx === -1) {
-                    alert("Could not find 'Symbol' or 'Quantity' columns. Found: " + headers.join(", "));
+                    alert("Column Error: Could not find required 'Symbol' or 'Quantity' columns. Please ensure you are using the correct Stock Events export.");
+                    console.error("Found headers:", headers);
                     return;
                 }
 
                 const portfolio = {};
+                let validRows = 0;
+
                 for (let i = 1; i < rows.length; i++) {
                     const cols = rows[i].split(',');
                     if (cols.length <= Math.max(symbolIdx, qtyIdx)) continue;
@@ -69,11 +90,22 @@
 
                     if (ticker) {
                         portfolio[ticker] = (portfolio[ticker] || 0) + qty;
+                        validRows++;
                     }
+                }
+
+                if (validRows === 0) {
+                    alert("Process Error: We found the columns, but no valid stock data was processed.");
+                    return;
                 }
 
                 renderPortfolio(portfolio);
             };
+
+            reader.onerror = function() {
+                alert("System Error: Failed to read the file. Try saving the file again or using a different browser.");
+            };
+
             reader.readAsText(file);
         }
 
@@ -98,7 +130,7 @@
                         </div>
                         <div class="text-right">
                             <p class="font-black text-slate-900">$${value.toLocaleString()}</p>
-                            <p class="text-[10px] text-blue-500 font-bold uppercase">Estimated</p>
+                            <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Est. Market Value</p>
                         </div>
                     </div>`;
             }
