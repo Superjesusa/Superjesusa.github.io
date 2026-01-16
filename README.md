@@ -1,4 +1,3 @@
-# Superjesusa.github.io
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,52 +10,41 @@
         .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body class="bg-gray-100 p-4 font-sans">
+<body class="bg-gray-100 p-4 font-sans text-gray-900">
 
     <header class="mb-6">
         <h1 class="text-2xl font-bold">Portfolio Performance</h1>
-        <p class="text-gray-500 text-sm">Last updated: <span id="time">14:30</span></p>
+        <p class="text-gray-500 text-sm">Last updated: <span id="time">00:00</span></p>
     </header>
 
-    <div class="card p-6 mb-6 bg-blue-600 text-white">
+    <div id="summary" class="card p-6 mb-6 bg-blue-600 text-white">
         <p class="text-sm opacity-80">Total Value</p>
-        <h2 class="text-3xl font-bold">$12,450.00</h2>
-        <p class="text-sm mt-2">+2.4% Today</p>
+        <h2 id="totalValue" class="text-3xl font-bold">$0.00</h2>
+        <p class="text-sm mt-2">Upload CSV to see stats</p>
     </div>
 
-    <div class="space-y-4">
-        <div class="card p-4 flex justify-between items-center">
-            <div>
-                <h3 class="font-bold">AAPL</h3>
-                <p class="text-xs text-gray-400">10 Shares</p>
-            </div>
-            <div class="text-right">
-                <p class="font-bold">$190.25</p>
-                <p class="text-xs text-green-500">+1.20%</p>
-            </div>
-        </div>
+    <div id="stockList" class="space-y-4">
+        <p class="text-center text-gray-400 py-10">No stocks loaded yet.</p>
+    </div>
+
+    <div class="mt-10 border-t border-gray-300 pt-6">
+        <h3 class="text-lg font-bold mb-2">Sync from Stock Events</h3>
+        <p class="text-xs text-gray-500 mb-4">Select the .csv file you exported from your app:</p>
         
-        <div class="card p-4 flex justify-between items-center">
-            <div>
-                <h3 class="font-bold">TSLA</h3>
-                <p class="text-xs text-gray-400">5 Shares</p>
-            </div>
-            <div class="text-right">
-                <p class="font-bold">$240.50</p>
-                <p class="text-xs text-red-500">-0.45%</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-10 border-t pt-6">
-        <h3 class="text-lg font-bold mb-2">Sync Data</h3>
-        <p class="text-xs text-gray-500 mb-4">Paste your stock list or CSV export below:</p>
-        <textarea id="importBox" class="w-full h-32 p-3 rounded-lg border focus:ring-2 focus:ring-blue-500" placeholder="Ticker, Quantity, Avg Cost..."></textarea>
-        <button onclick="importData()" class="mt-3 w-full bg-black text-white py-3 rounded-lg font-bold">Update Portfolio</button>
+        <label class="block">
+            <span class="sr-only">Choose file</span>
+            <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(event)" 
+                class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-3 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100 cursor-pointer"/>
+        </label>
     </div>
 
     <script>
-        // Set military time as per your preference
+        // Set military time (e.g., 11:55)
         function updateTime() {
             const now = new Date();
             const timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
@@ -65,10 +53,34 @@
         }
         updateTime();
 
-        function importData() {
-            const data = document.getElementById('importBox').value;
-            alert("Data received! (In a real app, this would parse your CSV and update the list above).");
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseCSV(e.target.result);
+            };
+            reader.readAsText(file);
         }
-    </script>
-</body>
-</html>
+
+        function parseCSV(data) {
+            const rows = data.split('\n');
+            const listContainer = document.getElementById('stockList');
+            listContainer.innerHTML = ''; 
+            
+            let totalPortfolioValue = 0;
+
+            // Loop through rows (skip header)
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i].split(',');
+                if (cols.length < 2) continue;
+
+                // Typical Stock Events CSV structure: Ticker is usually col 0, Qty is col 2
+                const ticker = cols[0].replace(/"/g, '').trim();
+                const qty = parseFloat(cols[2]) || 0;
+                
+                // For now, we simulate a price of $150.00 until we add the real API
+                const mockPrice = 150.00; 
+                const stockValue = qty * mockPrice;
+                totalPortfolioValue
